@@ -19,7 +19,7 @@ export default async function Home() {
       }}
     >
       <h1 style={{ marginBottom: "10px" }}>
-       Book My Show - CI/CD
+       Book My Show - MVP
       </h1>
 
       <p style={{ color: "#666", marginBottom: "30px" }}>
