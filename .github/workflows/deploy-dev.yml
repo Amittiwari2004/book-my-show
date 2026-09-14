@@ -1,0 +1,41 @@
+name: Deploy Development
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Development EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Development Server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: |
+            cd ~/book-my-show
+
+            echo "Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "Installing dependencies..."
+            pnpm install --frozen-lockfile
+
+            echo "Building application..."
+            pnpm build
+
+            echo "Restarting PM2..."
+            set -a
+            source ~/book-my-show/packages/prisma/.env
+            set +a
+
+            pm2 restart all --update-env
+            pm2 save
+
+            echo "Development deployment completed!"
