@@ -1,0 +1,58 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    name: Deploy to Production EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Production Server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+
+          script: |
+            set -e
+
+            echo "Loading NVM..."
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+            cd ~/book-my-show
+
+            echo "Deploying latest production branch..."
+
+            echo "Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/production
+
+            echo "Checking Node and pnpm..."
+            node -v
+            pnpm -v
+
+            echo "Installing dependencies..."
+            pnpm install --frozen-lockfile
+
+            echo "Cleaning old Next.js build..."
+            rm -rf apps/web/.next
+
+            echo "Building application..."
+            pnpm build
+
+            echo "Loading environment variables..."
+            set -a
+            source ~/book-my-show/packages/prisma/.env
+            set +a
+
+            echo "Restarting PM2..."
+            pm2 restart all --update-env
+            pm2 save
+
+            echo "Production deployment completed!"
