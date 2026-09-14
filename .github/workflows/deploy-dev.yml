@@ -17,8 +17,15 @@ jobs:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
+
           script: |
+            set -e
+
             cd ~/book-my-show
+
+            echo "================================="
+            echo "Deploying latest main branch..."
+            echo "================================="
 
             echo "Pulling latest code..."
             git fetch origin
@@ -27,15 +34,21 @@ jobs:
             echo "Installing dependencies..."
             pnpm install --frozen-lockfile
 
+            echo "Cleaning old Next.js build..."
+            rm -rf apps/web/.next
+
             echo "Building application..."
             pnpm build
 
-            echo "Restarting PM2..."
+            echo "Loading environment variables..."
             set -a
             source ~/book-my-show/packages/prisma/.env
             set +a
 
+            echo "Restarting PM2..."
             pm2 restart all --update-env
             pm2 save
 
+            echo "================================="
             echo "Development deployment completed!"
+            echo "================================="
