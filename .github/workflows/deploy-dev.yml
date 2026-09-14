@@ -1,37 +1,58 @@
-script: |
-  set -e
+name: Deploy Development
 
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+on:
+  push:
+    branches:
+      - main
 
-  cd ~/book-my-show
+jobs:
+  deploy:
+    name: Deploy to Development EC2
+    runs-on: ubuntu-latest
 
-  echo "Deploying latest main branch..."
+    steps:
+      - name: Deploy to Development Server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
 
-  echo "Pulling latest code..."
-  git fetch origin
-  git reset --hard origin/main
+          script: |
+            set -e
 
-  echo "Checking Node and pnpm..."
-  node -v
-  pnpm -v
+            echo "Loading NVM..."
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-  echo "Installing dependencies..."
-  pnpm install --frozen-lockfile
+            cd ~/book-my-show
 
-  echo "Cleaning old Next.js build..."
-  rm -rf apps/web/.next
+            echo "Deploying latest main branch..."
 
-  echo "Building application..."
-  pnpm build
+            echo "Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
 
-  echo "Loading environment variables..."
-  set -a
-  source ~/book-my-show/packages/prisma/.env
-  set +a
+            echo "Checking Node and pnpm..."
+            node -v
+            pnpm -v
 
-  echo "Restarting PM2..."
-  pm2 restart all --update-env
-  pm2 save
+            echo "Installing dependencies..."
+            pnpm install --frozen-lockfile
 
-  echo "Development deployment completed!"
+            echo "Cleaning old Next.js build..."
+            rm -rf apps/web/.next
+
+            echo "Building application..."
+            pnpm build
+
+            echo "Loading environment variables..."
+            set -a
+            source ~/book-my-show/packages/prisma/.env
+            set +a
+
+            echo "Restarting PM2..."
+            pm2 restart all --update-env
+            pm2 save
+
+            echo "Development deployment completed!"
