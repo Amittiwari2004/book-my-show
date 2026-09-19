@@ -4,23 +4,24 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-  ".": {
-    "types": "./dist/index.d.ts",
-    "require": "./dist/index.js",
-    "default": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "require": "./dist/client.js",
+      "default": "./dist/client.js"
+    }
   },
-  "./client": {
-    "types": "./dist/client.d.ts",
-    "require": "./dist/client.js",
-    "default": "./dist/client.js"
-  }
-},
   "scripts": {
     "build": "tsc -b",
     "postinstall": "prisma generate"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*"
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "7.0.2"
   },
   "dependencies": {
     "@prisma/client": "6.3.0",
