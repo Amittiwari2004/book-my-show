@@ -1,0 +1,142 @@
+name: Deploy Development
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build and Deploy Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # =========================================================
+      # WEB
+      # =========================================================
+
+      - name: Prune Web application
+        run: |
+          rm -rf out
+          pnpm turbo prune web --docker
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/web/Dockerfile
+          push: true
+          tags: |
+            buildwithamit/bms-web:${{ github.sha }}
+            buildwithamit/bms-web:latest
+
+      # =========================================================
+      # HTTP SERVER
+      # =========================================================
+
+      - name: Prune HTTP server
+        run: |
+          rm -rf out
+          pnpm turbo prune http-server --docker
+
+      - name: Build and push HTTP image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/http-server/Dockerfile
+          push: true
+          tags: |
+            buildwithamit/bms-http-server:${{ github.sha }}
+            buildwithamit/bms-http-server:latest
+
+      # =========================================================
+      # WEBSOCKET SERVER
+      # =========================================================
+
+      - name: Prune WebSocket server
+        run: |
+          rm -rf out
+          pnpm turbo prune ws-server --docker
+
+      - name: Build and push WebSocket image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/ws-server/Dockerfile
+          push: true
+          tags: |
+            buildwithamit/bms-ws-server:${{ github.sha }}
+            buildwithamit/bms-ws-server:latest
+
+      # =========================================================
+      # DEPLOY TO DEVELOPMENT EC2
+      # =========================================================
+
+      - name: Deploy to Development EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+
+          script: |
+            set -e
+
+            cd ~/book-my-show-docker
+
+            echo "======================================"
+            echo "Deploying Docker images"
+            echo "Image tag: ${{ github.sha }}"
+            echo "======================================"
+
+            echo "Pulling Web image..."
+            docker pull buildwithamit/bms-web:${{ github.sha }}
+
+            echo "Pulling HTTP image..."
+            docker pull buildwithamit/bms-http-server:${{ github.sha }}
+
+            echo "Pulling WebSocket image..."
+            docker pull buildwithamit/bms-ws-server:${{ github.sha }}
+
+            echo "Stopping old containers..."
+            docker compose down
+
+            echo "Starting new containers..."
+            IMAGE_TAG=${{ github.sha }} docker compose up -d
+
+            echo "Checking containers..."
+            docker compose ps
+
+            echo "Deployment completed!"

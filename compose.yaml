@@ -1,0 +1,36 @@
+services:
+
+  web:
+    image: bms-web-optimized:latest
+    container_name: bms-web
+    env_file:
+      - ./packages/prisma/.env.docker
+    ports:
+      - "3000:3000"
+    networks:
+      - bms-network
+
+  http-server:
+    image: bms-http-server-optimized:latest
+    container_name: bms-http-server
+    env_file:
+      - ./packages/prisma/.env.docker
+    ports:
+      - "3001:3001"
+    networks:
+      - bms-network
+
+  ws-server:
+    image: bms-ws-server-optimized:latest
+    container_name: bms-ws-server
+    env_file:
+      - ./packages/prisma/.env.docker
+    ports:
+      - "8080:8080"
+    networks:
+      - bms-network
+
+
+networks:
+  bms-network:
+    driver: bridge

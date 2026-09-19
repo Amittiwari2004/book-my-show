@@ -1,4 +1,5 @@
 import { client } from "@repo/db/client";
+
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
@@ -18,7 +19,7 @@ export default async function Home() {
       }}
     >
       <h1 style={{ marginBottom: "10px" }}>
-        Book My Show -Automate CI/CD
+     Book My Show - Docker CI/CD 🚀
       </h1>
 
       <p style={{ color: "#666", marginBottom: "30px" }}>
